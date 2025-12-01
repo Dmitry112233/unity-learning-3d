@@ -5,6 +5,8 @@ public class WayPointEditorComponent : EditorWindow
 {
     public Transform parentTransform;
     
+    private WayPointManager _wayPointManager;
+    
     [MenuItem("Tools/WayPoint Editor")]
     public static void OnOpen()
     {
@@ -20,21 +22,27 @@ public class WayPointEditorComponent : EditorWindow
         {
             EditorGUILayout.HelpBox("The parent transform must be set", MessageType.Warning);
         }
+        else if(!parentTransform.GetComponent<WayPointManager>())
+        {
+            EditorGUILayout.HelpBox("The way point manager must be added as component to parent transform", MessageType.Warning);
+        }
         else
         {
+            _wayPointManager =  parentTransform.GetComponent<WayPointManager>();
+            
             EditorGUILayout.BeginVertical("box");
-            DrawButton();
+            DrawButtons();
             EditorGUILayout.EndVertical();
         }
         
         serializedObject.ApplyModifiedProperties();
     }
 
-    private void DrawButton()
+    private void DrawButtons()
     {
-        if (GUILayout.Button("Create WayPoint"))
+        if (GUILayout.Button("Create Last WayPoint"))
         {
-            CreateWayPoint();
+            CreateLastWayPoint();
         }
 
         if (Selection.activeGameObject && Selection.activeGameObject.GetComponent<WayPoint>())
@@ -45,47 +53,50 @@ public class WayPointEditorComponent : EditorWindow
             }
         }
     }
-
-    private void CreateNextWayPoint()
+    
+    private void CreateLastWayPoint()
     {
         GameObject wayPointObj = new GameObject($"WayPoint_{parentTransform.childCount}", typeof(WayPoint));
         wayPointObj.transform.SetParent(parentTransform, false);
-        
-        WayPoint wayPoint = wayPointObj.GetComponent<WayPoint>();
-        WayPoint selectedWayPoint = Selection.activeGameObject.GetComponent<WayPoint>();
-        
-        wayPoint.transform.position = selectedWayPoint.transform.position;
-        wayPoint.transform.forward = selectedWayPoint.transform.forward;
-        
-        wayPoint.prevWayPoint = selectedWayPoint;
 
-        if (selectedWayPoint.nextWayPoint)
-        {
-            selectedWayPoint.nextWayPoint.prevWayPoint = wayPoint;
-            wayPoint.nextWayPoint = selectedWayPoint.nextWayPoint;
-        }
-        selectedWayPoint.nextWayPoint = wayPoint;
-        wayPoint.transform.SetSiblingIndex(selectedWayPoint.transform.GetSiblingIndex());
-        
-        Selection.activeGameObject = wayPoint.gameObject;
-    }
+        var wayPoint = wayPointObj.GetComponent<WayPoint>();
 
-    private void CreateWayPoint()
-    {
-        GameObject wayPointObj = new GameObject($"WayPoint_{parentTransform.childCount}", typeof(WayPoint));
-        wayPointObj.transform.SetParent(parentTransform, false);
-        
-        WayPoint wayPoint = wayPointObj.GetComponent<WayPoint>();
-        
         if (parentTransform.childCount > 1)
         {
-            wayPoint.prevWayPoint = parentTransform.GetChild(parentTransform.childCount - 2).GetComponent<WayPoint>();
-            wayPoint.prevWayPoint.nextWayPoint = wayPoint;
+            var last = parentTransform.GetChild(parentTransform.childCount - 2).GetComponent<WayPoint>();
             
-            wayPoint.transform.position = wayPoint.prevWayPoint.transform.position;
-            wayPoint.transform.forward = wayPoint.prevWayPoint.transform.forward;
+            wayPoint.transform.position = last.transform.position;
+            wayPoint.transform.forward = last.transform.forward;
         }
-        
-        Selection.activeGameObject = wayPointObj.gameObject;
+
+        _wayPointManager.AddLast(wayPoint);
+        Selection.activeGameObject = wayPointObj;
     }
+    
+    private void CreateNextWayPoint()
+    {
+        var selectedGO = Selection.activeGameObject;
+        if (!selectedGO) return;
+
+        var selectedWP = selectedGO.GetComponent<WayPoint>();
+        if (!selectedWP) return;
+        
+        var selectedNode = _wayPointManager.NodeOf(selectedWP);
+        if (selectedNode == null) return;
+        
+        GameObject newObj = new GameObject($"WayPoint_{parentTransform.childCount}", typeof(WayPoint));
+        newObj.transform.SetParent(parentTransform, false);
+
+        var newWP = newObj.GetComponent<WayPoint>();
+        
+        newWP.transform.position = selectedWP.transform.position;
+        newWP.transform.forward  = selectedWP.transform.forward;
+        
+        _wayPointManager.AddAfter(selectedNode, newWP);
+        
+        newObj.transform.SetSiblingIndex(selectedWP.transform.GetSiblingIndex() + 1);
+
+        Selection.activeGameObject = newObj;
+    }
+
 }
