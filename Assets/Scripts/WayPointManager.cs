@@ -28,6 +28,7 @@ public class WayPointManager : MonoBehaviour
         for (int i = 0; i < transform.childCount; i++)
         {
             var child = transform.GetChild(i);
+            child.name = $"WayPoint_{i}";
             var wp = child.GetComponent<WayPoint>();
             if (wp == null) continue;
 

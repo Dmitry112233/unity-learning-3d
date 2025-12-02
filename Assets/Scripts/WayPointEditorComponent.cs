@@ -51,9 +51,13 @@ public class WayPointEditorComponent : EditorWindow
             {
                 CreateNextWayPoint();
             }
+            if (GUILayout.Button("Remove WayPoint"))
+            {
+                RemoveWayPoint();
+            }
         }
     }
-    
+
     private void CreateLastWayPoint()
     {
         GameObject wayPointObj = new GameObject($"WayPoint_{parentTransform.childCount}", typeof(WayPoint));
@@ -75,28 +79,45 @@ public class WayPointEditorComponent : EditorWindow
     
     private void CreateNextWayPoint()
     {
-        var selectedGO = Selection.activeGameObject;
-        if (!selectedGO) return;
+        var selectedGo = Selection.activeGameObject;
+        if (!selectedGo) return;
 
-        var selectedWP = selectedGO.GetComponent<WayPoint>();
-        if (!selectedWP) return;
+        var selectedWp = selectedGo.GetComponent<WayPoint>();
+        if (!selectedWp) return;
         
-        var selectedNode = _wayPointManager.NodeOf(selectedWP);
+        var selectedNode = _wayPointManager.NodeOf(selectedWp);
         if (selectedNode == null) return;
         
         GameObject newObj = new GameObject($"WayPoint_{parentTransform.childCount}", typeof(WayPoint));
         newObj.transform.SetParent(parentTransform, false);
 
-        var newWP = newObj.GetComponent<WayPoint>();
+        var newWp = newObj.GetComponent<WayPoint>();
         
-        newWP.transform.position = selectedWP.transform.position;
-        newWP.transform.forward  = selectedWP.transform.forward;
+        newWp.transform.position = selectedWp.transform.position;
+        newWp.transform.forward  = selectedWp.transform.forward;
         
-        _wayPointManager.AddAfter(selectedNode, newWP);
+        _wayPointManager.AddAfter(selectedNode, newWp);
         
-        newObj.transform.SetSiblingIndex(selectedWP.transform.GetSiblingIndex() + 1);
+        newObj.transform.SetSiblingIndex(selectedWp.transform.GetSiblingIndex() + 1);
 
         Selection.activeGameObject = newObj;
+        
+        _wayPointManager.RebuildListFromChildren();
+    }
+    
+    private void RemoveWayPoint()
+    {
+        var selectedGo = Selection.activeGameObject;
+        if (!selectedGo) return;
+
+        var selectedWp = selectedGo.GetComponent<WayPoint>();
+        if (!selectedWp) return;
+        
+        var selectedNode = _wayPointManager.NodeOf(selectedWp);
+        if (selectedNode == null) return;
+        
+        DestroyImmediate(selectedWp.gameObject);
+        _wayPointManager.RebuildListFromChildren();
     }
 
 }
