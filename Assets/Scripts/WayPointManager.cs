@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,12 +5,15 @@ using UnityEngine;
 public class WayPointManager : MonoBehaviour
 {
     public LinkedList<WayPoint> List { get; private set; } = new LinkedList<WayPoint>();
+    
+    private Color roadColor = Color.blue;
 
     private Dictionary<WayPoint, LinkedListNode<WayPoint>> _nodeMap =
         new Dictionary<WayPoint, LinkedListNode<WayPoint>>();
 
     private void OnEnable()
     {
+        roadColor = Random.ColorHSV(0, 1, 0.6f, 1f, 0.6f, 1f);
         RebuildListFromChildren();
     }
 
@@ -70,13 +72,25 @@ public class WayPointManager : MonoBehaviour
     {
         if (List.Count < 2) return;
 
-        Gizmos.color = Color.blue;
+        Gizmos.color = roadColor;
 
         var node = List.First;
         while (node?.Next != null)
         {
             Gizmos.DrawLine(node.Value.transform.position, node.Next.Value.transform.position);
             node = node.Next;
+        }
+        
+        Gizmos.color = Color.red;
+        foreach (var wp in List)
+        {
+            if (wp.branches == null) continue;
+
+            foreach (var branch in wp.branches)
+            {
+                if (branch != null)
+                    Gizmos.DrawLine(wp.transform.position, branch.transform.position);
+            }
         }
     }
 }

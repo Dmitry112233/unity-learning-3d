@@ -6,4 +6,7 @@ using UnityEngine.Serialization;
 public class WayPoint : MonoBehaviour
 {
     [SerializeField] [Range(0f, 5f)] public float radius = 2f;
+    
+    public WayPointManager ownerRoute;
+    public List<WayPoint> branches = new List<WayPoint>();
 }

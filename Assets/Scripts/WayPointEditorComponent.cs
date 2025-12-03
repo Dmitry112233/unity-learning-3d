@@ -4,8 +4,9 @@ using UnityEngine;
 public class WayPointEditorComponent : EditorWindow
 {
     public Transform parentTransform;
-    
     private WayPointManager _wayPointManager;
+
+    private int _routeNumber = 1;
     
     [MenuItem("Tools/WayPoint Editor")]
     public static void OnOpen()
@@ -55,26 +56,32 @@ public class WayPointEditorComponent : EditorWindow
             {
                 RemoveWayPoint();
             }
+            if (GUILayout.Button("Create Branch"))
+            {
+                CreateBranch();
+            }
         }
     }
 
     private void CreateLastWayPoint()
     {
-        GameObject wayPointObj = new GameObject($"WayPoint_{parentTransform.childCount}", typeof(WayPoint));
-        wayPointObj.transform.SetParent(parentTransform, false);
+        GameObject newObj = new GameObject($"WayPoint_{parentTransform.childCount}", typeof(WayPoint));
+        newObj.transform.SetParent(parentTransform, false);
 
-        var wayPoint = wayPointObj.GetComponent<WayPoint>();
+        var newWp = newObj.GetComponent<WayPoint>();
 
         if (parentTransform.childCount > 1)
         {
             var last = parentTransform.GetChild(parentTransform.childCount - 2).GetComponent<WayPoint>();
             
-            wayPoint.transform.position = last.transform.position;
-            wayPoint.transform.forward = last.transform.forward;
+            newWp.transform.position = last.transform.position;
+            newWp.transform.forward = last.transform.forward;
         }
 
-        _wayPointManager.AddLast(wayPoint);
-        Selection.activeGameObject = wayPointObj;
+        newWp.ownerRoute = _wayPointManager;
+        
+        _wayPointManager.AddLast(newWp);
+        Selection.activeGameObject = newObj;
     }
     
     private void CreateNextWayPoint()
@@ -95,6 +102,8 @@ public class WayPointEditorComponent : EditorWindow
         
         newWp.transform.position = selectedWp.transform.position;
         newWp.transform.forward  = selectedWp.transform.forward;
+        
+        newWp.ownerRoute = _wayPointManager;
         
         _wayPointManager.AddAfter(selectedNode, newWp);
         
@@ -118,6 +127,37 @@ public class WayPointEditorComponent : EditorWindow
         
         DestroyImmediate(selectedWp.gameObject);
         _wayPointManager.RebuildListFromChildren();
+    }
+    
+    private void CreateBranch()
+    {
+        var selectedGo = Selection.activeGameObject;
+        if (!selectedGo) return;
+
+        var fromWp = selectedGo.GetComponent<WayPoint>();
+        if (!fromWp) return;
+        
+        GameObject newRouteObj = new GameObject($"Route_{_routeNumber++}");
+        var newRoute = newRouteObj.AddComponent<WayPointManager>();
+        
+        GameObject newWpObj = new GameObject("WayPoint_0", typeof(WayPoint));
+        newWpObj.transform.SetParent(newRouteObj.transform, false);
+        
+        var newWp = newWpObj.GetComponent<WayPoint>();
+        
+        newWp.transform.position = fromWp.transform.position;
+        newWp.transform.forward  = fromWp.transform.forward;
+        
+        newWp.ownerRoute = newRoute;
+        newRoute.RebuildListFromChildren();
+        
+        fromWp.branches.Add(newWp);
+        
+        parentTransform = newRouteObj.transform;
+        _wayPointManager = newRoute;
+        Repaint();
+        
+        Selection.activeGameObject = newWpObj;
     }
 
 }
